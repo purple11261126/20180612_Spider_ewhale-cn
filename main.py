@@ -8,7 +8,7 @@ Created on 2018年6月12日
 
 import requests  # requests 比 urllib 好用多了感觉，http://blog.csdn.net/gyq1998/article/details/78583841
 import re
-from lxml import etree
+from lxml import etree  # XPATH
 import numpy as np
 import sqlite3
  
@@ -46,16 +46,28 @@ for num in np.arange(num_start, num_end):
          
         # 使用 XPath 获取标题和内容
         html = etree.HTML(r_text.text)
-        html_title = html.xpath('/html/body/div[1]/div[3]/div[2]/div/div/div[1]/h1/text()')
-        html_content = html.xpath("/html/body/div[1]/div[3]/div[2]/div/div/div[1]/article/p/text()")
-        html_content[-1] = ''
-        for i in html_content:
-            print(i)
+        title_lis.append(html.xpath('/html/body/div[1]/div[3]/div[2]/div/div/div[1]/h1/text()'))
+        '''
+                现在缺少文章中 URL 里的文字，获取内容时，怎么用 XPATH 获取所有子节点（包括嵌套的）？？string()。
+        | 符号只能连接两个条件？？
+        '''
+        content_lis.append(html.xpath("/html/body/div[1]/div[3]/div[2]/div/div/div[1]/article/p[not(@class='tag-block')]/text() | /html/body/div[1]/div[3]/div[2]/div/div/div[1]/article/ul/li/text()"))
     
-    # 清洗数据
-# print(html_content[-1])
-# print(title_lis)    
-# print(content_lis)
+    # 写入SQLite
+    conn = sqlite3.connect('./ewhale.db')  # 连接、创建数据库
+    cur = conn.cursor()  # 创建游标
+    for title, content in zip(title_lis, content_lis):
+        '''
+                    现在写入的都是列表，怎么转成 string 写入？？
+        '''
+        cur.execute('INSERT INTO text(title, content) VALUES ("{}", "{}")'.format(title, content))  # 写入变量
+        conn.commit()
+    
+    cur.close()  # 关闭游标
+    conn.close()  # 关闭连接
+
+
+
 
     
     
